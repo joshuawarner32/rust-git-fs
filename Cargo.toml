@@ -2,3 +2,9 @@
 name = "git-fs"
 version = "0.1.0"
 authors = ["Joshua Warner <joshuawarner32@gmail.com>"]
+
+[dependencies]
+git2 = "0.3.3"
+fuse = "0.2.7"
+time = "0.1"
+libc = "0.2.4"
