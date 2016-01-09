@@ -1,0 +1,4 @@
+[package]
+name = "git-fs"
+version = "0.1.0"
+authors = ["Joshua Warner <joshuawarner32@gmail.com>"]
