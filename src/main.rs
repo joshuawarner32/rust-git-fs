@@ -133,7 +133,7 @@ impl GitFilesystem {
 
 impl Filesystem for GitFilesystem {
     fn lookup (&mut self, _req: &Request, parent: u64, name: &Path, reply: ReplyEntry) {
-        println!("lookup {:?} {:?}", parent, name);
+        // println!("lookup {:?} {:?}", parent, name);
 
         let tree = get_tree(&self.repo, &mut self.nodes, parent);
 
@@ -173,7 +173,7 @@ impl Filesystem for GitFilesystem {
                             flags: 0,
                         };
 
-                        println!("  entry {:?}", attr);
+                        // println!("  entry {:?}", attr);
                         reply.entry(&TTL, &attr, 0);
                         return;
                     }
@@ -188,7 +188,7 @@ impl Filesystem for GitFilesystem {
     }
 
     fn getattr (&mut self, _req: &Request, ino: u64, reply: ReplyAttr) {
-        println!("getattr {:?}", ino);
+        // println!("getattr {:?}", ino);
 
         let obj = match get_obj(&mut self.repo, &mut self.nodes, ino) {
             Ok(obj) => obj,
@@ -223,7 +223,7 @@ impl Filesystem for GitFilesystem {
             flags: 0,
         };
 
-        println!("  attr {:?}", attr);
+        // println!("  attr {:?}", attr);
         reply.attr(&TTL, &attr);
 
         // match ino {
@@ -234,7 +234,7 @@ impl Filesystem for GitFilesystem {
     }
 
     fn read (&mut self, _req: &Request, ino: u64, _fh: u64, offset: u64, _size: u32, reply: ReplyData) {
-        println!("read {:?} {:?} {:?} {:?}", ino, _fh, offset, _size);
+        // println!("read {:?} {:?} {:?} {:?}", ino, _fh, offset, _size);
 
         let obj = match get_obj(&mut self.repo, &mut self.nodes, ino) {
             Ok(obj) => obj,
@@ -252,7 +252,7 @@ impl Filesystem for GitFilesystem {
     }
 
     fn readdir (&mut self, _req: &Request, ino: u64, _fh: u64, offset: u64, mut reply: ReplyDirectory) {
-        println!("readdir {:?} {:?} {:?}", ino, _fh, offset);
+        // println!("readdir {:?} {:?} {:?}", ino, _fh, offset);
 
         let tree = get_tree(&mut self.repo, &mut self.nodes, ino);
 
@@ -263,16 +263,16 @@ impl Filesystem for GitFilesystem {
                 }
 
                 if offset == 0 {
-                    println!("  add 1 0 Directory .");
+                    // println!("  add 1 0 Directory .");
                     reply.add(1, 0, FileType::Directory, ".");
-                    println!("  add 1 1 Directory ..");
+                    // println!("  add 1 1 Directory ..");
                     reply.add(1, 1, FileType::Directory, "..");
 
                     for i in 0..tree.len() {
                         let entry = tree.get(i).unwrap();
                         let (ino, kind, name) = get_tree_entry_info(&mut self.nodes, &entry);
 
-                        println!("  add {} {} {:?} {}", ino, i + 2, kind, name);
+                        // println!("  add {} {} {:?} {}", ino, i + 2, kind, name);
                         reply.add(ino, i as u64 + 2, kind, name);
                     }
                 }
@@ -293,22 +293,34 @@ struct LoggingFilesystem<T: Filesystem> {
     inner: T
 }
 
+impl<T: Filesystem> LoggingFilesystem<T> {
+    fn new(inner: T) -> LoggingFilesystem<T> {
+        LoggingFilesystem {
+            inner: inner
+        }
+    }
+}
+
 impl<T: Filesystem> Filesystem for LoggingFilesystem<T> {
     /// Initialize filesystem
     /// Called before any other filesystem method.
     fn init (&mut self, _req: &Request) -> Result<(), libc::c_int> {
-        self.inner.init(_req)
+        let res = self.inner.init(_req);
+        println!("self.inner.init() -> {:?}", res);
+        res
     }
 
     /// Clean up filesystem
     /// Called on filesystem exit.
     fn destroy (&mut self, _req: &Request) {
-        self.inner.destroy(_req)
+        self.inner.destroy(_req);
+        println!("self.inner.destroy()");
     }
 
     /// Look up a directory entry by name and get its attributes.
     fn lookup (&mut self, _req: &Request, _parent: u64, _name: &Path, reply: ReplyEntry) {
-        self.inner.lookup(_req, _parent, _name, reply)
+        self.inner.lookup(_req, _parent, _name, reply);
+        println!("self.inner.lookup({}, {:?})", _parent, _name);
     }
 
     /// Forget about an inode
@@ -319,58 +331,69 @@ impl<T: Filesystem> Filesystem for LoggingFilesystem<T> {
     /// have a limited lifetime. On unmount it is not guaranteed, that all referenced
     /// inodes will receive a forget message.
     fn forget (&mut self, _req: &Request, _ino: u64, _nlookup: u64) {
-        self.inner.forget(_req, _ino, _nlookup)
+        self.inner.forget(_req, _ino, _nlookup);
+        println!("self.inner.forget({})", _ino);
     }
 
     /// Get file attributes
     fn getattr (&mut self, _req: &Request, _ino: u64, reply: ReplyAttr) {
-        self.inner.getattr(_req, _ino, reply)
+        self.inner.getattr(_req, _ino, reply);
+        println!("self.inner.getattr({})", _ino);
     }
 
     /// Set file attributes
     fn setattr (&mut self, _req: &Request, _ino: u64, _mode: Option<u32>, _uid: Option<u32>, _gid: Option<u32>, _size: Option<u64>, _atime: Option<Timespec>, _mtime: Option<Timespec>, _fh: Option<u64>, _crtime: Option<Timespec>, _chgtime: Option<Timespec>, _bkuptime: Option<Timespec>, _flags: Option<u32>, reply: ReplyAttr) {
-        self.inner.setattr(_req, _ino, _mode, _uid, _gid, _size, _atime, _mtime, _fh, _crtime, _chgtime, _bkuptime, _flags, reply)
+        self.inner.setattr(_req, _ino, _mode, _uid, _gid, _size, _atime, _mtime, _fh, _crtime, _chgtime, _bkuptime, _flags, reply);
+        println!("self.inner.setattr({}, {:?}, {:?}, {:?}, {:?}, {:?}, {:?}, {:?}, {:?}, {:?}, {:?}, {:?})", _ino, _mode, _uid, _gid, _size, _atime, _mtime, _fh, _crtime, _chgtime, _bkuptime, _flags);
     }
 
     /// Read symbolic link
     fn readlink (&mut self, _req: &Request, _ino: u64, reply: ReplyData) {
-        self.inner.readlink(_req, _ino, reply)
+        self.inner.readlink(_req, _ino, reply);
+        println!("self.inner.readlink({})", _ino);
     }
 
     /// Create file node
     /// Create a regular file, character device, block device, fifo or socket node.
     fn mknod (&mut self, _req: &Request, _parent: u64, _name: &Path, _mode: u32, _rdev: u32, reply: ReplyEntry) {
-        self.inner.mknod(_req, _parent, _name, _mode, _rdev, reply)
+        self.inner.mknod(_req, _parent, _name, _mode, _rdev, reply);
+        println!("self.inner.mknod({}, {:?}, {}, {})", _parent, _name, _mode, _rdev);
     }
 
     /// Create a directory
     fn mkdir (&mut self, _req: &Request, _parent: u64, _name: &Path, _mode: u32, reply: ReplyEntry) {
-        self.inner.mkdir(_req, _parent, _name, _mode, reply)
+        self.inner.mkdir(_req, _parent, _name, _mode, reply);
+        println!("self.inner.mkdir({}, {:?}, {})", _parent, _name, _mode);
     }
 
     /// Remove a file
     fn unlink (&mut self, _req: &Request, _parent: u64, _name: &Path, reply: ReplyEmpty) {
-        self.inner.unlink(_req, _parent, _name, reply)
+        self.inner.unlink(_req, _parent, _name, reply);
+        println!("self.inner.unlink({}, {:?})", _parent, _name);
     }
 
     /// Remove a directory
     fn rmdir (&mut self, _req: &Request, _parent: u64, _name: &Path, reply: ReplyEmpty) {
-        self.inner.rmdir(_req, _parent, _name, reply)
+        self.inner.rmdir(_req, _parent, _name, reply);
+        println!("self.inner.rmdir({}, {:?})", _parent, _name);
     }
 
     /// Create a symbolic link
     fn symlink (&mut self, _req: &Request, _parent: u64, _name: &Path, _link: &Path, reply: ReplyEntry) {
-        self.inner.symlink(_req, _parent, _name, _link, reply)
+        self.inner.symlink(_req, _parent, _name, _link, reply);
+        println!("self.inner.symlink({}, {:?}, {:?})", _parent, _name, _link);
     }
 
     /// Rename a file
     fn rename (&mut self, _req: &Request, _parent: u64, _name: &Path, _newparent: u64, _newname: &Path, reply: ReplyEmpty) {
-        self.inner.rename(_req, _parent, _name, _newparent, _newname, reply)
+        self.inner.rename(_req, _parent, _name, _newparent, _newname, reply);
+        println!("self.inner.rename({}, {:?}, {}, {:?})", _parent, _name, _newparent, _newname);
     }
 
     /// Create a hard link
     fn link (&mut self, _req: &Request, _ino: u64, _newparent: u64, _newname: &Path, reply: ReplyEntry) {
-        self.inner.link(_req, _ino, _newparent, _newname, reply)
+        self.inner.link(_req, _ino, _newparent, _newname, reply);
+        println!("self.inner.link({}, {}, {:?})", _ino, _newparent, _newname);
     }
 
     /// Open a file
@@ -382,7 +405,8 @@ impl<T: Filesystem> Filesystem for LoggingFilesystem<T> {
     /// filesystem may set, to change the way the file is opened. See fuse_file_info
     /// structure in <fuse_common.h> for more details.
     fn open (&mut self, _req: &Request, _ino: u64, _flags: u32, reply: ReplyOpen) {
-        self.inner.open(_req, _ino, _flags, reply)
+        self.inner.open(_req, _ino, _flags, reply);
+        println!("self.inner.open({}, {:?})", _ino, _flags);
     }
 
     /// Read data
@@ -393,7 +417,8 @@ impl<T: Filesystem> Filesystem for LoggingFilesystem<T> {
     /// operation. fh will contain the value set by the open method, or will be undefined
     /// if the open method didn't set any value.
     fn read (&mut self, _req: &Request, _ino: u64, _fh: u64, _offset: u64, _size: u32, reply: ReplyData) {
-        self.inner.read(_req, _ino, _fh, _offset, _size, reply)
+        self.inner.read(_req, _ino, _fh, _offset, _size, reply);
+        println!("self.inner.read({}, {}, {}, {})", _ino, _fh, _offset, _size);
     }
 
     /// Write data
@@ -403,7 +428,8 @@ impl<T: Filesystem> Filesystem for LoggingFilesystem<T> {
     /// value of this operation. fh will contain the value set by the open method, or
     /// will be undefined if the open method didn't set any value.
     fn write (&mut self, _req: &Request, _ino: u64, _fh: u64, _offset: u64, _data: &[u8], _flags: u32, reply: ReplyWrite) {
-        self.inner.write(_req, _ino, _fh, _offset, _data, _flags, reply)
+        self.inner.write(_req, _ino, _fh, _offset, _data, _flags, reply);
+        println!("self.inner.write({}, {}, {}, len: {}, {})", _ino, _fh, _offset, _data.len(), _flags);
     }
 
     /// Flush method
@@ -417,7 +443,8 @@ impl<T: Filesystem> Filesystem for LoggingFilesystem<T> {
     /// filesystem wants to return write errors. If the filesystem supports file locking
     /// operations (setlk, getlk) it should remove all locks belonging to 'lock_owner'.
     fn flush (&mut self, _req: &Request, _ino: u64, _fh: u64, _lock_owner: u64, reply: ReplyEmpty) {
-        self.inner.flush(_req, _ino, _fh, _lock_owner, reply)
+        self.inner.flush(_req, _ino, _fh, _lock_owner, reply);
+        println!("self.inner.flush({}, {}, {})", _ino, _fh, _lock_owner);
     }
 
     /// Release an open file
@@ -429,14 +456,16 @@ impl<T: Filesystem> Filesystem for LoggingFilesystem<T> {
     /// if the open method didn't set any value. flags will contain the same flags as for
     /// open.
     fn release (&mut self, _req: &Request, _ino: u64, _fh: u64, _flags: u32, _lock_owner: u64, _flush: bool, reply: ReplyEmpty) {
-        self.inner.release(_req, _ino, _fh, _flags, _lock_owner, _flush, reply)
+        self.inner.release(_req, _ino, _fh, _flags, _lock_owner, _flush, reply);
+        println!("self.inner.release({}, {}, {}, {}, {})", _ino, _fh, _flags, _lock_owner, _flush);
     }
 
     /// Synchronize file contents
     /// If the datasync parameter is non-zero, then only the user data should be flushed,
     /// not the meta data.
     fn fsync (&mut self, _req: &Request, _ino: u64, _fh: u64, _datasync: bool, reply: ReplyEmpty) {
-        self.inner.fsync(_req, _ino, _fh, _datasync, reply)
+        self.inner.fsync(_req, _ino, _fh, _datasync, reply);
+        println!("self.inner.fsync({}, {}, {})", _ino, _fh, _datasync);
     }
 
     /// Open a directory
@@ -447,7 +476,8 @@ impl<T: Filesystem> Filesystem for LoggingFilesystem<T> {
     /// directory stream operations in case the contents of the directory can change
     /// between opendir and releasedir.
     fn opendir (&mut self, _req: &Request, _ino: u64, _flags: u32, reply: ReplyOpen) {
-        self.inner.opendir(_req, _ino, _flags, reply)
+        self.inner.opendir(_req, _ino, _flags, reply);
+        println!("self.inner.opendir({}, {})", _ino, _flags);
     }
 
     /// Read directory
@@ -456,7 +486,8 @@ impl<T: Filesystem> Filesystem for LoggingFilesystem<T> {
     /// value set by the opendir method, or will be undefined if the opendir method
     /// didn't set any value.
     fn readdir (&mut self, _req: &Request, _ino: u64, _fh: u64, _offset: u64, reply: ReplyDirectory) {
-        self.inner.readdir(_req, _ino, _fh, _offset, reply)
+        self.inner.readdir(_req, _ino, _fh, _offset, reply);
+        println!("self.inner.readdir({}, {}, {})", _ino, _fh, _offset);
     }
 
     /// Release an open directory
@@ -464,7 +495,8 @@ impl<T: Filesystem> Filesystem for LoggingFilesystem<T> {
     /// contain the value set by the opendir method, or will be undefined if the
     /// opendir method didn't set any value.
     fn releasedir (&mut self, _req: &Request, _ino: u64, _fh: u64, _flags: u32, reply: ReplyEmpty) {
-        self.inner.releasedir(_req, _ino, _fh, _flags, reply)
+        self.inner.releasedir(_req, _ino, _fh, _flags, reply);
+        println!("self.inner.releasedir({}, {}, {})", _ino, _fh, _flags);
     }
 
     /// Synchronize directory contents
@@ -472,32 +504,38 @@ impl<T: Filesystem> Filesystem for LoggingFilesystem<T> {
     /// be flushed, not the meta data. fh will contain the value set by the opendir
     /// method, or will be undefined if the opendir method didn't set any value.
     fn fsyncdir (&mut self, _req: &Request, _ino: u64, _fh: u64, _datasync: bool, reply: ReplyEmpty) {
-        self.inner.fsyncdir(_req, _ino, _fh, _datasync, reply)
+        self.inner.fsyncdir(_req, _ino, _fh, _datasync, reply);
+        println!("self.inner.fsyncdir({}, {}, {})", _ino, _fh, _datasync);
     }
 
     /// Get file system statistics
     fn statfs (&mut self, _req: &Request, _ino: u64, reply: ReplyStatfs) {
-        self.inner.statfs(_req, _ino, reply)
+        self.inner.statfs(_req, _ino, reply);
+        println!("self.inner.statfs({})", _ino);
     }
 
     /// Set an extended attribute
     fn setxattr (&mut self, _req: &Request, _ino: u64, _name: &std::ffi::OsStr, _value: &[u8], _flags: u32, _position: u32, reply: ReplyEmpty) {
-        self.inner.setxattr(_req, _ino, _name, _value, _flags, _position, reply)
+        self.inner.setxattr(_req, _ino, _name, _value, _flags, _position, reply);
+        println!("self.inner.setxattr({}, {:?}, len: {}, {}, {})", _ino, _name, _value.len(), _flags, _position);
     }
 
     /// Get an extended attribute
     fn getxattr (&mut self, _req: &Request, _ino: u64, _name: &std::ffi::OsStr, reply: ReplyData) {
-        self.inner.getxattr(_req, _ino, _name, reply)
+        self.inner.getxattr(_req, _ino, _name, reply);
+        println!("self.inner.getxattr({}, {:?})", _ino, _name);
     }
 
     /// List extended attribute names
     fn listxattr (&mut self, _req: &Request, _ino: u64, reply: ReplyEmpty) {
-        self.inner.listxattr(_req, _ino, reply)
+        self.inner.listxattr(_req, _ino, reply);
+        println!("self.inner.listxattr({})", _ino);
     }
 
     /// Remove an extended attribute
     fn removexattr (&mut self, _req: &Request, _ino: u64, _name: &std::ffi::OsStr, reply: ReplyEmpty) {
-        self.inner.removexattr(_req, _ino, _name, reply)
+        self.inner.removexattr(_req, _ino, _name, reply);
+        println!("self.inner.removexattr({}, {:?})", _ino, _name);
     }
 
     /// Check file access permissions
@@ -505,7 +543,8 @@ impl<T: Filesystem> Filesystem for LoggingFilesystem<T> {
     /// mount option is given, this method is not called. This method is not called
     /// under Linux kernel versions 2.4.x
     fn access (&mut self, _req: &Request, _ino: u64, _mask: u32, reply: ReplyEmpty) {
-        self.inner.access(_req, _ino, _mask, reply)
+        self.inner.access(_req, _ino, _mask, reply);
+        println!("self.inner.access({}, {})", _ino, _mask);
     }
 
     /// Create and open a file
@@ -519,12 +558,14 @@ impl<T: Filesystem> Filesystem for LoggingFilesystem<T> {
     /// implemented or under Linux kernel versions earlier than 2.6.15, the mknod()
     /// and open() methods will be called instead.
     fn create (&mut self, _req: &Request, _parent: u64, _name: &Path, _mode: u32, _flags: u32, reply: ReplyCreate) {
-        self.inner.create(_req, _parent, _name, _mode, _flags, reply)
+        self.inner.create(_req, _parent, _name, _mode, _flags, reply);
+        println!("self.inner.create({}, {:?}, {}, {})", _parent, _name, _mode, _flags);
     }
 
     /// Test for a POSIX file lock
     fn getlk (&mut self, _req: &Request, _ino: u64, _fh: u64, _lock_owner: u64, _start: u64, _end: u64, _typ: u32, _pid: u32, reply: ReplyLock) {
-        self.inner.getlk(_req, _ino, _fh, _lock_owner, _start, _end, _typ, _pid, reply)
+        self.inner.getlk(_req, _ino, _fh, _lock_owner, _start, _end, _typ, _pid, reply);
+        println!("self.inner.getlk({}, {}, {}, {}, {}, {}, {})", _ino, _fh, _lock_owner, _start, _end, _typ, _pid);
     }
 
     /// Acquire, modify or release a POSIX file lock
@@ -535,34 +576,39 @@ impl<T: Filesystem> Filesystem for LoggingFilesystem<T> {
     /// implemented, the kernel will still allow file locking to work locally.
     /// Hence these are only interesting for network filesystems and similar.
     fn setlk (&mut self, _req: &Request, _ino: u64, _fh: u64, _lock_owner: u64, _start: u64, _end: u64, _typ: u32, _pid: u32, _sleep: bool, reply: ReplyEmpty) {
-        self.inner.setlk(_req, _ino, _fh, _lock_owner, _start, _end, _typ, _pid, _sleep, reply)
+        self.inner.setlk(_req, _ino, _fh, _lock_owner, _start, _end, _typ, _pid, _sleep, reply);
+        println!("self.inner.setlk({}, {}, {}, {}, {}, {}, {}, {})", _ino, _fh, _lock_owner, _start, _end, _typ, _pid, _sleep);
     }
 
     /// Map block index within file to block index within device
     /// Note: This makes sense only for block device backed filesystems mounted
     /// with the 'blkdev' option
     fn bmap (&mut self, _req: &Request, _ino: u64, _blocksize: u32, _idx: u64, reply: ReplyBmap) {
-        self.inner.bmap(_req, _ino, _blocksize, _idx, reply)
+        self.inner.bmap(_req, _ino, _blocksize, _idx, reply);
+        println!("self.inner.bmap({}, {}, {})", _ino, _blocksize, _idx);
     }
 
     /// OS X only: Rename the volume. Set fuse_init_out.flags during init to
     /// FUSE_VOL_RENAME to enable
     #[cfg(target_os = "macos")]
     fn setvolname (&mut self, _req: &Request, _name: &std::ffi::OsStr, reply: ReplyEmpty) {
-        self.inner.setvolname(_req, _name, reply)
+        self.inner.setvolname(_req, _name, reply);
+        println!("self.inner.setvolname({:?})", _name);
     }
 
     /// OS X only (undocumented)
     #[cfg(target_os = "macos")]
     fn exchange (&mut self, _req: &Request, _parent: u64, _name: &Path, _newparent: u64, _newname: &Path, _options: u64, reply: ReplyEmpty) {
-        self.inner.exchange(_req, _parent, _name, _newparent, _newname, _options, reply)
+        self.inner.exchange(_req, _parent, _name, _newparent, _newname, _options, reply);
+        println!("self.inner.exchange({}, {:?}, {}, {:?}, {})", _parent, _name, _newparent, _newname, _options);
     }
 
     /// OS X only: Query extended times (bkuptime and crtime). Set fuse_init_out.flags
     /// during init to FUSE_XTIMES to enable
     #[cfg(target_os = "macos")]
     fn getxtimes (&mut self, _req: &Request, _ino: u64, reply: ReplyXTimes) {
-        self.inner.getxtimes(_req, _ino, reply)
+        self.inner.getxtimes(_req, _ino, reply);
+        println!("self.inner.getxtimes({})", _ino);
     }
 }
 
@@ -578,5 +624,5 @@ fn main () {
     let tree = repo.find_commit(master).unwrap().tree().unwrap().id();
 
     let mountpoint = env::args_os().nth(1).unwrap();
-    fuse::mount(GitFilesystem::new(repo, tree), &mountpoint, &[]);
+    fuse::mount(LoggingFilesystem::new(GitFilesystem::new(repo, tree)), &mountpoint, &[]);
 }
