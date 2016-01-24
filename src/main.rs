@@ -297,17 +297,18 @@ impl<T: Filesystem> Filesystem for LoggingFilesystem<T> {
     /// Initialize filesystem
     /// Called before any other filesystem method.
     fn init (&mut self, _req: &Request) -> Result<(), libc::c_int> {
-        Ok(())
+        self.inner.init(_req)
     }
 
     /// Clean up filesystem
     /// Called on filesystem exit.
     fn destroy (&mut self, _req: &Request) {
+        self.inner.destroy(_req)
     }
 
     /// Look up a directory entry by name and get its attributes.
     fn lookup (&mut self, _req: &Request, _parent: u64, _name: &Path, reply: ReplyEntry) {
-        reply.error(libc::ENOSYS);
+        self.inner.lookup(_req, _parent, _name, reply)
     }
 
     /// Forget about an inode
@@ -318,57 +319,58 @@ impl<T: Filesystem> Filesystem for LoggingFilesystem<T> {
     /// have a limited lifetime. On unmount it is not guaranteed, that all referenced
     /// inodes will receive a forget message.
     fn forget (&mut self, _req: &Request, _ino: u64, _nlookup: u64) {
+        self.inner.forget(_req, _ino, _nlookup)
     }
 
     /// Get file attributes
     fn getattr (&mut self, _req: &Request, _ino: u64, reply: ReplyAttr) {
-        reply.error(libc::ENOSYS);
+        self.inner.getattr(_req, _ino, reply)
     }
 
     /// Set file attributes
     fn setattr (&mut self, _req: &Request, _ino: u64, _mode: Option<u32>, _uid: Option<u32>, _gid: Option<u32>, _size: Option<u64>, _atime: Option<Timespec>, _mtime: Option<Timespec>, _fh: Option<u64>, _crtime: Option<Timespec>, _chgtime: Option<Timespec>, _bkuptime: Option<Timespec>, _flags: Option<u32>, reply: ReplyAttr) {
-        reply.error(libc::ENOSYS);
+        self.inner.setattr(_req, _ino, _mode, _uid, _gid, _size, _atime, _mtime, _fh, _crtime, _chgtime, _bkuptime, _flags, reply)
     }
 
     /// Read symbolic link
     fn readlink (&mut self, _req: &Request, _ino: u64, reply: ReplyData) {
-        reply.error(libc::ENOSYS);
+        self.inner.readlink(_req, _ino, reply)
     }
 
     /// Create file node
     /// Create a regular file, character device, block device, fifo or socket node.
     fn mknod (&mut self, _req: &Request, _parent: u64, _name: &Path, _mode: u32, _rdev: u32, reply: ReplyEntry) {
-        reply.error(libc::ENOSYS);
+        self.inner.mknod(_req, _parent, _name, _mode, _rdev, reply)
     }
 
     /// Create a directory
     fn mkdir (&mut self, _req: &Request, _parent: u64, _name: &Path, _mode: u32, reply: ReplyEntry) {
-        reply.error(libc::ENOSYS);
+        self.inner.mkdir(_req, _parent, _name, _mode, reply)
     }
 
     /// Remove a file
     fn unlink (&mut self, _req: &Request, _parent: u64, _name: &Path, reply: ReplyEmpty) {
-        reply.error(libc::ENOSYS);
+        self.inner.unlink(_req, _parent, _name, reply)
     }
 
     /// Remove a directory
     fn rmdir (&mut self, _req: &Request, _parent: u64, _name: &Path, reply: ReplyEmpty) {
-        reply.error(libc::ENOSYS);
+        self.inner.rmdir(_req, _parent, _name, reply)
     }
 
     /// Create a symbolic link
     fn symlink (&mut self, _req: &Request, _parent: u64, _name: &Path, _link: &Path, reply: ReplyEntry) {
-        reply.error(libc::ENOSYS);
+        self.inner.symlink(_req, _parent, _name, _link, reply)
     }
 
     /// Rename a file
     fn rename (&mut self, _req: &Request, _parent: u64, _name: &Path, _newparent: u64, _newname: &Path, reply: ReplyEmpty) {
-        reply.error(libc::ENOSYS);
+        self.inner.rename(_req, _parent, _name, _newparent, _newname, reply)
     }
 
     /// Create a hard link
     fn link (&mut self, _req: &Request, _ino: u64, _newparent: u64, _newname: &Path, reply: ReplyEntry) {
-        reply.error(libc::ENOSYS);
+        self.inner.link(_req, _ino, _newparent, _newname, reply)
     }
 
     /// Open a file
@@ -380,7 +382,7 @@ impl<T: Filesystem> Filesystem for LoggingFilesystem<T> {
     /// filesystem may set, to change the way the file is opened. See fuse_file_info
     /// structure in <fuse_common.h> for more details.
     fn open (&mut self, _req: &Request, _ino: u64, _flags: u32, reply: ReplyOpen) {
-        reply.opened(0, 0);
+        self.inner.open(_req, _ino, _flags, reply)
     }
 
     /// Read data
@@ -391,7 +393,7 @@ impl<T: Filesystem> Filesystem for LoggingFilesystem<T> {
     /// operation. fh will contain the value set by the open method, or will be undefined
     /// if the open method didn't set any value.
     fn read (&mut self, _req: &Request, _ino: u64, _fh: u64, _offset: u64, _size: u32, reply: ReplyData) {
-        reply.error(libc::ENOSYS);
+        self.inner.read(_req, _ino, _fh, _offset, _size, reply)
     }
 
     /// Write data
@@ -401,7 +403,7 @@ impl<T: Filesystem> Filesystem for LoggingFilesystem<T> {
     /// value of this operation. fh will contain the value set by the open method, or
     /// will be undefined if the open method didn't set any value.
     fn write (&mut self, _req: &Request, _ino: u64, _fh: u64, _offset: u64, _data: &[u8], _flags: u32, reply: ReplyWrite) {
-        reply.error(libc::ENOSYS);
+        self.inner.write(_req, _ino, _fh, _offset, _data, _flags, reply)
     }
 
     /// Flush method
@@ -415,7 +417,7 @@ impl<T: Filesystem> Filesystem for LoggingFilesystem<T> {
     /// filesystem wants to return write errors. If the filesystem supports file locking
     /// operations (setlk, getlk) it should remove all locks belonging to 'lock_owner'.
     fn flush (&mut self, _req: &Request, _ino: u64, _fh: u64, _lock_owner: u64, reply: ReplyEmpty) {
-        reply.error(libc::ENOSYS);
+        self.inner.flush(_req, _ino, _fh, _lock_owner, reply)
     }
 
     /// Release an open file
@@ -427,14 +429,14 @@ impl<T: Filesystem> Filesystem for LoggingFilesystem<T> {
     /// if the open method didn't set any value. flags will contain the same flags as for
     /// open.
     fn release (&mut self, _req: &Request, _ino: u64, _fh: u64, _flags: u32, _lock_owner: u64, _flush: bool, reply: ReplyEmpty) {
-        reply.ok();
+        self.inner.release(_req, _ino, _fh, _flags, _lock_owner, _flush, reply)
     }
 
     /// Synchronize file contents
     /// If the datasync parameter is non-zero, then only the user data should be flushed,
     /// not the meta data.
     fn fsync (&mut self, _req: &Request, _ino: u64, _fh: u64, _datasync: bool, reply: ReplyEmpty) {
-        reply.error(libc::ENOSYS);
+        self.inner.fsync(_req, _ino, _fh, _datasync, reply)
     }
 
     /// Open a directory
@@ -445,7 +447,7 @@ impl<T: Filesystem> Filesystem for LoggingFilesystem<T> {
     /// directory stream operations in case the contents of the directory can change
     /// between opendir and releasedir.
     fn opendir (&mut self, _req: &Request, _ino: u64, _flags: u32, reply: ReplyOpen) {
-        reply.opened(0, 0);
+        self.inner.opendir(_req, _ino, _flags, reply)
     }
 
     /// Read directory
@@ -454,7 +456,7 @@ impl<T: Filesystem> Filesystem for LoggingFilesystem<T> {
     /// value set by the opendir method, or will be undefined if the opendir method
     /// didn't set any value.
     fn readdir (&mut self, _req: &Request, _ino: u64, _fh: u64, _offset: u64, reply: ReplyDirectory) {
-        reply.error(libc::ENOSYS);
+        self.inner.readdir(_req, _ino, _fh, _offset, reply)
     }
 
     /// Release an open directory
@@ -462,7 +464,7 @@ impl<T: Filesystem> Filesystem for LoggingFilesystem<T> {
     /// contain the value set by the opendir method, or will be undefined if the
     /// opendir method didn't set any value.
     fn releasedir (&mut self, _req: &Request, _ino: u64, _fh: u64, _flags: u32, reply: ReplyEmpty) {
-        reply.ok();
+        self.inner.releasedir(_req, _ino, _fh, _flags, reply)
     }
 
     /// Synchronize directory contents
@@ -470,36 +472,32 @@ impl<T: Filesystem> Filesystem for LoggingFilesystem<T> {
     /// be flushed, not the meta data. fh will contain the value set by the opendir
     /// method, or will be undefined if the opendir method didn't set any value.
     fn fsyncdir (&mut self, _req: &Request, _ino: u64, _fh: u64, _datasync: bool, reply: ReplyEmpty) {
-        reply.error(libc::ENOSYS);
+        self.inner.fsyncdir(_req, _ino, _fh, _datasync, reply)
     }
 
     /// Get file system statistics
     fn statfs (&mut self, _req: &Request, _ino: u64, reply: ReplyStatfs) {
-        reply.statfs(0, 0, 0, 0, 0, 512, 255, 0);
+        self.inner.statfs(_req, _ino, reply)
     }
 
     /// Set an extended attribute
     fn setxattr (&mut self, _req: &Request, _ino: u64, _name: &std::ffi::OsStr, _value: &[u8], _flags: u32, _position: u32, reply: ReplyEmpty) {
-        reply.error(libc::ENOSYS);
+        self.inner.setxattr(_req, _ino, _name, _value, _flags, _position, reply)
     }
 
     /// Get an extended attribute
     fn getxattr (&mut self, _req: &Request, _ino: u64, _name: &std::ffi::OsStr, reply: ReplyData) {
-        // FIXME: If arg.size is zero, the size of the value should be sent with fuse_getxattr_out
-    // FIXME: If arg.size is non-zero, send the value if it fits, or ERANGE otherwise
-    reply.error(libc::ENOSYS);
+        self.inner.getxattr(_req, _ino, _name, reply)
     }
 
     /// List extended attribute names
     fn listxattr (&mut self, _req: &Request, _ino: u64, reply: ReplyEmpty) {
-        // FIXME: If arg.size is zero, the size of the attribute list should be sent with fuse_getxattr_out
-    // FIXME: If arg.size is non-zero, send the attribute list if it fits, or ERANGE otherwise
-    reply.error(libc::ENOSYS);
+        self.inner.listxattr(_req, _ino, reply)
     }
 
     /// Remove an extended attribute
     fn removexattr (&mut self, _req: &Request, _ino: u64, _name: &std::ffi::OsStr, reply: ReplyEmpty) {
-        reply.error(libc::ENOSYS);
+        self.inner.removexattr(_req, _ino, _name, reply)
     }
 
     /// Check file access permissions
@@ -507,7 +505,7 @@ impl<T: Filesystem> Filesystem for LoggingFilesystem<T> {
     /// mount option is given, this method is not called. This method is not called
     /// under Linux kernel versions 2.4.x
     fn access (&mut self, _req: &Request, _ino: u64, _mask: u32, reply: ReplyEmpty) {
-        reply.error(libc::ENOSYS);
+        self.inner.access(_req, _ino, _mask, reply)
     }
 
     /// Create and open a file
@@ -521,12 +519,12 @@ impl<T: Filesystem> Filesystem for LoggingFilesystem<T> {
     /// implemented or under Linux kernel versions earlier than 2.6.15, the mknod()
     /// and open() methods will be called instead.
     fn create (&mut self, _req: &Request, _parent: u64, _name: &Path, _mode: u32, _flags: u32, reply: ReplyCreate) {
-        reply.error(libc::ENOSYS);
+        self.inner.create(_req, _parent, _name, _mode, _flags, reply)
     }
 
     /// Test for a POSIX file lock
     fn getlk (&mut self, _req: &Request, _ino: u64, _fh: u64, _lock_owner: u64, _start: u64, _end: u64, _typ: u32, _pid: u32, reply: ReplyLock) {
-        reply.error(libc::ENOSYS);
+        self.inner.getlk(_req, _ino, _fh, _lock_owner, _start, _end, _typ, _pid, reply)
     }
 
     /// Acquire, modify or release a POSIX file lock
@@ -537,34 +535,34 @@ impl<T: Filesystem> Filesystem for LoggingFilesystem<T> {
     /// implemented, the kernel will still allow file locking to work locally.
     /// Hence these are only interesting for network filesystems and similar.
     fn setlk (&mut self, _req: &Request, _ino: u64, _fh: u64, _lock_owner: u64, _start: u64, _end: u64, _typ: u32, _pid: u32, _sleep: bool, reply: ReplyEmpty) {
-        reply.error(libc::ENOSYS);
+        self.inner.setlk(_req, _ino, _fh, _lock_owner, _start, _end, _typ, _pid, _sleep, reply)
     }
 
     /// Map block index within file to block index within device
     /// Note: This makes sense only for block device backed filesystems mounted
     /// with the 'blkdev' option
     fn bmap (&mut self, _req: &Request, _ino: u64, _blocksize: u32, _idx: u64, reply: ReplyBmap) {
-        reply.error(libc::ENOSYS);
+        self.inner.bmap(_req, _ino, _blocksize, _idx, reply)
     }
 
     /// OS X only: Rename the volume. Set fuse_init_out.flags during init to
     /// FUSE_VOL_RENAME to enable
     #[cfg(target_os = "macos")]
     fn setvolname (&mut self, _req: &Request, _name: &std::ffi::OsStr, reply: ReplyEmpty) {
-        reply.error(libc::ENOSYS);
+        self.inner.setvolname(_req, _name, reply)
     }
 
     /// OS X only (undocumented)
     #[cfg(target_os = "macos")]
     fn exchange (&mut self, _req: &Request, _parent: u64, _name: &Path, _newparent: u64, _newname: &Path, _options: u64, reply: ReplyEmpty) {
-        reply.error(libc::ENOSYS);
+        self.inner.exchange(_req, _parent, _name, _newparent, _newname, _options, reply)
     }
 
     /// OS X only: Query extended times (bkuptime and crtime). Set fuse_init_out.flags
     /// during init to FUSE_XTIMES to enable
     #[cfg(target_os = "macos")]
     fn getxtimes (&mut self, _req: &Request, _ino: u64, reply: ReplyXTimes) {
-        reply.error(libc::ENOSYS);
+        self.inner.getxtimes(_req, _ino, reply)
     }
 }
 
